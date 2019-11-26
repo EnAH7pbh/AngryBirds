@@ -4,14 +4,16 @@ using UnityEngine;
 using UnityEngine.Events;
 
 public class Bird : MonoBehaviour {
-    public enum BirdState { Idle, Thrown }
+    public enum BirdState { Idle, Thrown, HitSomething }
     public GameObject parent;
     public Rigidbody2D Rigidbody;
     public Collider2D Collider;
     private BirdState _state;
     private float _minVelocity = 0.05f;
     private bool _flagDestroy = false;
-    public UnityAction OnBirdDestroyed = delegate{};
+    public UnityAction OnBirdDestroyed = delegate { };
+    public UnityAction<Bird> OnBirdShot = delegate { };
+    public BirdState State { get { return _state; } }
     // Start is called before the first frame update
     void Start () {
         Rigidbody.bodyType = RigidbodyType2D.Kinematic;
@@ -24,7 +26,7 @@ public class Bird : MonoBehaviour {
         if (_state == BirdState.Idle && Rigidbody.velocity.sqrMagnitude >= _minVelocity) {
             _state = BirdState.Thrown;
         }
-        if (_state == BirdState.Thrown && Rigidbody.velocity.sqrMagnitude < _minVelocity && !_flagDestroy) {
+        if ((_state == BirdState.Thrown || _state == BirdState.HitSomething) && Rigidbody.velocity.sqrMagnitude < _minVelocity && !_flagDestroy) {
             //destroy gameobject after 2 second
             //if speed < _minVelocity
             _flagDestroy = true;
@@ -46,9 +48,14 @@ public class Bird : MonoBehaviour {
         Collider.enabled = true;
         Rigidbody.bodyType = RigidbodyType2D.Dynamic;
         Rigidbody.velocity = velocity * speed * distance;
+        OnBirdShot (this);
     }
 
-    void OnDestroy(){
-        OnBirdDestroyed();
+    void OnDestroy () {
+        OnBirdDestroyed ();
+    }
+
+    void OnCollisionEnter2D (Collision2D collision) {
+        _state = BirdState.HitSomething;
     }
 }
